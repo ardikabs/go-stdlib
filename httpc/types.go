@@ -23,4 +23,4 @@ func (s StatusCodeHandlers) Set(code int, handler StatusCodeHandleFunc) {
 }
 
 // UnmarshalFunc intended for user if they want bring their own unmarshaller solution
-type UnmarshalFunc func(data []byte, out interface{}) error
+type UnmarshalFunc func(contentType string, data []byte, out interface{}) error

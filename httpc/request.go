@@ -44,6 +44,10 @@ func NewRequest(client Doer, baseURL string, opts ...Option) (*Request, error) {
 		return nil, err
 	}
 
+	if u.Scheme == "" {
+		return nil, ErrProtocolRequired
+	}
+
 	r := &Request{
 		httpc:              client,
 		url:                u,
@@ -80,51 +84,55 @@ func (r *Request) Invoke() error {
 	}
 	req.Header = r.header
 
-	var retryCount int
+	var (
+		retryCount int
+		response   *http.Response
+	)
 
 doRequest:
-	for {
-		if retryCount > r.retryLimit {
-			return ErrRetryExceeded
+	for ; retryCount <= r.retryLimit; retryCount++ {
+		if response != nil {
+			response.Body.Close()
 		}
 
-		resp, err := r.httpc.Do(req)
+		var err error
+		response, err = r.httpc.Do(req)
 		if err != nil {
 			return err
 		}
 
 		if len(r.retryOn) > 0 {
 			for _, retryOn := range r.retryOn {
-				if valid := retryOn(resp.StatusCode); valid {
-					resp.Body.Close()
-
-					retryCount++
+				if valid := retryOn(response.StatusCode); valid {
 					continue doRequest
 				}
 			}
 		}
 
-		if handler, ok := r.statusCodeHandlers[resp.StatusCode]; ok {
-			defer resp.Body.Close()
-			if err := handler(resp); err != nil {
+		if handler, ok := r.statusCodeHandlers[response.StatusCode]; ok {
+			if err := handler(response); err != nil {
 				return err
 			}
 
 			return nil
 		}
 
-		defer resp.Body.Close()
-		data, err := ioutil.ReadAll(resp.Body)
+		defer response.Body.Close()
+		data, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			return err
 		}
 
-		contentType := resp.Header.Get(HeaderContentType)
+		contentType := response.Header.Get(HeaderContentType)
 		if err := r.unmarshal(contentType, data, r.receiver); err != nil {
 			return err
 		}
 
 		break
+	}
+
+	if retryCount > r.retryLimit {
+		return ErrRetryExceeded
 	}
 
 	return nil
@@ -135,7 +143,7 @@ func (r *Request) unmarshal(contentType string, data []byte, out interface{}) er
 	// we assume it might be also customized how to interact
 	// with the response receiver
 	if r.unmarshalFunc != nil {
-		return r.unmarshalFunc(data, out)
+		return r.unmarshalFunc(contentType, data, out)
 	}
 
 	// if out is nil, will skip the unmarshal step

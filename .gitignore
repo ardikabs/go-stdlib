@@ -1,0 +1,8 @@
+.vscode/
+.idea/
+config.yaml
+.env
+.envrc
+cover.out
+vendor/**
+.DS_Store

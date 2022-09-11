@@ -77,8 +77,8 @@ func WithUnmarshaler(fn UnmarshalFunc) Option {
 	}
 }
 
-// WithStatusCodeHandler set custom handler for a given HTTP status code
-func WithStatusCodeHandler(code int, fn StatusCodeHandleFunc) Option {
+// WithCustomHandler set custom handler for a given HTTP status code
+func WithCustomHandler(code int, fn StatusCodeHandleFunc) Option {
 	return func(req *Request) error {
 		if fn == nil {
 			return fmt.Errorf("status code handle func MUST not be nil")
