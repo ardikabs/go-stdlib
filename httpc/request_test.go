@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ardikabs/go-client/httpc"
+	"github.com/ardikabs/golib/httpc"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

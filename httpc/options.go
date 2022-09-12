@@ -3,7 +3,9 @@ package httpc
 import (
 	"bytes"
 	"encoding/json"
+
 	"fmt"
+	"github.com/ardikabs/golib/tool"
 )
 
 // WithPath set the URL Path
@@ -121,7 +123,7 @@ func WithRetryOn(retryOn RetryOnKind) Option {
 			}
 		case RetryOnGatewayErr:
 			fn = func(code int) bool {
-				return In(code, 502, 503, 504)
+				return tool.In(code, 502, 503, 504)
 			}
 		default:
 			return fmt.Errorf("unknown retry on type")

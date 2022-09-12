@@ -1,4 +1,4 @@
-module github.com/ardikabs/go-client
+module github.com/ardikabs/golib
 
 go 1.18
 
