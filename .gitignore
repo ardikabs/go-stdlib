@@ -3,6 +3,7 @@
 config.yaml
 .env
 .envrc
-cover.out
+coverage.out
+coverage.html
 vendor/**
 .DS_Store

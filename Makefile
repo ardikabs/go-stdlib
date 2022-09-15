@@ -1,6 +1,5 @@
-GOMIGRATE_VERSION = 4.14.1
-GOLANGCI_VERSION = 1.31.0
-PLATFORM := $(shell uname | tr '[:upper:]' '[:lower:]')
+GOLANGCI_VERSION = 1.47.3
+OUTDIR := bin
 PATH := bin:$(PATH)
 SHELL := env PATH=$(PATH) /bin/bash
 
@@ -19,7 +18,7 @@ bin/golangci-lint: bin/golangci-lint-${GOLANGCI_VERSION}
 
 bin/golangci-lint-${GOLANGCI_VERSION}:
 	@mkdir -p $(OUTDIR)
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | bash -s -- -b ./bin/ v${GOLANGCI_VERSION}
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b ./bin v${GOLANGCI_VERSION}
 	@mv bin/golangci-lint "$@"
 
 ## audit: tidy and vendor dependencies and format, vet, lint and test all code
@@ -37,8 +36,9 @@ vet:
 .PHONY: test
 test:
 	@echo 'Running tests...'
-	@CGO_ENABLED=0 go test $(shell go list ./... | grep -v /vendor/|xargs echo) -cover -coverprofile=cover.out
-	go tool cover -func=cover.out
+	@CGO_ENABLED=0 go test $(shell go list ./... | grep -v /vendor/|xargs echo) -cover -coverprofile=coverage.out
+	@go tool cover -html=coverage.out -o coverage.html
+	go tool cover -func=coverage.out
 
 ## fmt: formatting code
 fmt:

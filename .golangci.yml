@@ -1,0 +1,13 @@
+linters:
+  enable:
+    - errcheck
+
+issues:
+  exclude-use-default: false
+
+linters-settings:
+  errcheck:
+    # exclude: errcheck-exclude.txt
+    exclude-functions:
+    - (io.Closer).Close
+    - (net/http.ResponseWriter).Write

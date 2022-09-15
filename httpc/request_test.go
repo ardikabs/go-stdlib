@@ -3,7 +3,7 @@ package httpc_test
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -147,7 +147,7 @@ func TestInvokeWithPayloadAndReceiver(t *testing.T) {
 
 		assert.NotNil(t, r.Body)
 
-		rbody, err := ioutil.ReadAll(r.Body)
+		rbody, err := io.ReadAll(r.Body)
 		require.NoError(t, err, "should not have failed to extract request body")
 
 		expectedPayloadByte, err := json.Marshal(expectedPayload)

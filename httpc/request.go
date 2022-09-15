@@ -3,7 +3,6 @@ package httpc
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 )
@@ -118,7 +117,7 @@ doRequest:
 		}
 
 		defer response.Body.Close()
-		data, err := ioutil.ReadAll(response.Body)
+		data, err := io.ReadAll(response.Body)
 		if err != nil {
 			return err
 		}
