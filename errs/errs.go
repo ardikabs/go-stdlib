@@ -100,8 +100,7 @@ func (v ValidationErrors) Error() string {
 }
 
 const (
-	Unknown         Kind = iota // Unknown error. This value is expected for unknown error
-	Other                       // Unclassified error. This value is not printed in the error message
+	Other           Kind = iota // Unclassified error. This value is not printed in the error message.
 	IO                          // External I/O error such as network failure
 	Private                     // Information withheld
 	Internal                    // Internal error or inconsistency
@@ -146,47 +145,28 @@ func (k Kind) String() string {
 	return "unknown_error"
 }
 
-func Match(err1, err2 error) bool {
-	e1, ok := err1.(*Error)
-	if !ok {
-		return false
-	}
-	e2, ok := err2.(*Error)
-	if !ok {
-		return false
-	}
-	if e1.User != "" && e2.User != e1.User {
-		return false
-	}
-	if e1.Kind != Other && e2.Kind != e1.Kind {
-		return false
-	}
-	if e1.Param != "" && e2.Param != e1.Param {
-		return false
-	}
-	if e1.Code != "" && e2.Code != e1.Code {
-		return false
-	}
-	if e1.Err != nil {
-		if _, ok := e1.Err.(*Error); ok {
-			return Match(e1.Err, e2.Err)
-		}
-		if e2.Err == nil || e2.Err.Error() != e1.Err.Error() {
-			return false
-		}
-	}
-	return true
-}
-
-func GetKind(err error) Kind {
-	e, ok := err.(*Error)
-	if !ok {
-		return Unknown
-	}
-
-	return e.Kind
-}
-
+// E builds an error value from its arguments.
+// There must be at least one argument or E panics.
+// The type of each argument determines its meaning.
+// If more than one argument of a given type is presented,
+// only the last one is recorded.
+//
+// The types are:
+//	errs.Kind
+//		The class of error, such as permission failure.
+//	errs.UserName
+//		The username of the user attempting the operation.
+//	string
+//		Treated as an error message and assigned to the
+//		Err field after a call to errors.New.
+//	error
+//		The underlying error that triggered this one.
+//
+// If the error is printed, only those items that have been
+// set to non-zero values will appear in the result.
+//
+// If Kind is not specified or Other, we set it to the Kind of
+// the underlying error.
 func E(args ...interface{}) error {
 	type stackTracer interface {
 		StackTrace() errors.StackTrace
@@ -255,11 +235,67 @@ func E(args ...interface{}) error {
 	if prev.Param == e.Param {
 		prev.Param = ""
 	}
-	// If this error has Code == "", pull up the inner one.
+	// If this error has Param == "", pull up the inner one.
 	if e.Param == "" {
 		e.Param = prev.Param
 		prev.Param = ""
 	}
 
 	return e
+}
+
+// Match compares its two error arguments. It can be used to check
+// for expected errors in tests. Both arguments must have underlying
+// type *Error or Match will return false. Otherwise it returns true
+// if every non-zero element of the first error is equal to the
+// corresponding element of the second.
+// If the Err field is a *Error, Match recurs on that field;
+// otherwise it compares the strings returned by the Error methods.
+// Elements that are in the second argument but not present in
+// the first are ignored.
+//
+// For example,
+//	Match(errs.E(errors.Permission, errs.UserName("john@doe.com")), err)
+//  tests whether err is an Error with Kind=Permission and User=john@doe.com.
+func Match(err1, err2 error) bool {
+	e1, ok := err1.(*Error)
+	if !ok {
+		return false
+	}
+	e2, ok := err2.(*Error)
+	if !ok {
+		return false
+	}
+	if e1.User != "" && e2.User != e1.User {
+		return false
+	}
+	if e1.Kind != Other && e2.Kind != e1.Kind {
+		return false
+	}
+	if e1.Param != "" && e2.Param != e1.Param {
+		return false
+	}
+	if e1.Code != "" && e2.Code != e1.Code {
+		return false
+	}
+	if e1.Err != nil {
+		if _, ok := e1.Err.(*Error); ok {
+			return Match(e1.Err, e2.Err)
+		}
+		if e2.Err == nil || e2.Err.Error() != e1.Err.Error() {
+			return false
+		}
+	}
+	return true
+}
+
+// KindIs reports whether err is an *Error of the given Kind.
+// If err is nil then KindIs returns false.
+func KindIs(kind Kind, err error) bool {
+	e, ok := err.(*Error)
+	if !ok {
+		return false
+	}
+
+	return e.Kind == kind
 }

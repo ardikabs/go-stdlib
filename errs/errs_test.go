@@ -1,35 +1,84 @@
 package errs_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/ardikabs/golib/errs"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestE(t *testing.T) {
-
-	t.Run("new errs.Error", func(t *testing.T) {
-		err := errs.E(errs.Other, errs.Code("another_code"), fmt.Errorf("some new error"))
-		assert.NotNil(t, err)
-		assert.Equal(t, errs.Other, errs.GetKind(err))
-		assert.Equal(t, "some new error", err.Error())
+func TestErrsNoArgs(t *testing.T) {
+	assert.Panics(t, func() {
+		_ = errs.E()
 	})
+}
 
-	t.Run("stacked error", func(t *testing.T) {
-		err := errs.E(errs.Other, errs.Code("another_code"), errs.Parameter("param"))
-		err = errs.E(errs.Validation, err)
-		assert.Equal(t, errs.Validation, errs.GetKind(err))
+func TestKindIs(t *testing.T) {
 
-		e, ok := err.(*errs.Error)
-		assert.True(t, ok)
-		assert.Equal(t, errs.Parameter("param"), e.Param)
-		assert.Equal(t, errs.Code("another_code"), e.Code)
-	})
+	testcases := []struct {
+		err  error
+		kind errs.Kind
+		want bool
+	}{
+		{
+			err:  nil,
+			kind: errs.Invalid,
+			want: false,
+		},
+		{
+			err:  errs.E(errs.Internal, "new internal error"),
+			kind: errs.Internal,
+			want: true,
+		},
+		{
+			err:  errs.E("some error"),
+			kind: errs.Other,
+			want: true,
+		},
+		{
+			err:  errs.E("some error"),
+			kind: errs.NotExist,
+			want: false,
+		},
+		{
+			err:  errs.E("nesting", errs.E(errs.Internal)),
+			kind: errs.Internal,
+			want: true,
+		},
+		{
+			err:  errs.E("nesting", errs.E("no thing")),
+			kind: errs.NotExist,
+			want: false,
+		},
+		{
+			err:  errs.E("nesting", errs.E("no thing inside")),
+			kind: errs.Other,
+			want: true,
+		},
+	}
 
-	t.Run("string error", func(t *testing.T) {
-		err := errs.E(errs.Internal, "internal server error")
-		assert.Equal(t, "internal server error", err.Error())
-	})
+	for _, tc := range testcases {
+		got := errs.KindIs(tc.kind, tc.err)
+		assert.Equal(t, tc.want, got, "KindIs: err(%s) want=(%s), got=(%s)", tc.err, tc.want, got)
+	}
+}
+
+func TestMatch(t *testing.T) {
+	user := errs.UserName("ardikabs")
+	err := errors.New("network unreachable")
+
+	// Now construct a reference error, which might not have all
+	// the fields of the error from the test.
+	want := errs.E(errs.IO, user, err)
+
+	// Construct an error, one we pretend to have received from a test.
+	err1 := errs.E(errs.IO, user, err)
+	match := errs.Match(want, err1)
+	assert.True(t, match, "Expect to be matched, but got mismatched")
+
+	// Now one that's incorrect - wrong Kind.
+	err2 := errs.E(errs.Database, user, err)
+	match = errs.Match(want, err2)
+	assert.False(t, match, "Expect to be mismatched, but matched")
 }
