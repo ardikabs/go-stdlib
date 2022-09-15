@@ -17,7 +17,7 @@ type StatusCodeHandleFunc func(*http.Response) error
 type StatusCodeHandlers map[int]StatusCodeHandleFunc
 
 // Set will define the handler for a given http status code
-// if a given http status code already exists in the map, the next operation would be overriden the previous handler for the http status code
+// if a given http status code already exists in the map, the next operation would be overridden the previous handler for the http status code
 func (s StatusCodeHandlers) Set(code int, handler StatusCodeHandleFunc) {
 	s[code] = handler
 }
