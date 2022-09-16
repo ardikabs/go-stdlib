@@ -1,7 +1,7 @@
 package validator
 
 import (
-	"github.com/ardikabs/golib/errs"
+	"github.com/ardikabs/golib/pkg/errs"
 )
 
 type Validator struct {

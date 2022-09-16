@@ -1,10 +1,10 @@
 package errs_test
 
 import (
+	"fmt"
 	"testing"
 
-	"github.com/ardikabs/golib/errs"
-	"github.com/pkg/errors"
+	"github.com/ardikabs/golib/pkg/errs"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,19 +66,21 @@ func TestKindIs(t *testing.T) {
 
 func TestMatch(t *testing.T) {
 	user := errs.UserName("ardikabs")
-	err := errors.New("network unreachable")
+	code := errs.Code("os_network")
+	param := errs.Parameter("param")
+	err := fmt.Errorf("network unreachable")
 
 	// Now construct a reference error, which might not have all
 	// the fields of the error from the test.
-	want := errs.E(errs.IO, user, err)
+	want := errs.E(errs.IO, user, param, code, err)
 
 	// Construct an error, one we pretend to have received from a test.
-	err1 := errs.E(errs.IO, user, err)
+	err1 := errs.E(errs.IO, user, param, code, err)
 	match := errs.Match(want, err1)
 	assert.True(t, match, "Expect to be matched, but got mismatched")
 
 	// Now one that's incorrect - wrong Kind.
-	err2 := errs.E(errs.Database, user, err)
+	err2 := errs.E(errs.Database, user, param, code, err)
 	match = errs.Match(want, err2)
 	assert.False(t, match, "Expect to be mismatched, but matched")
 }

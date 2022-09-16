@@ -3,8 +3,8 @@ package validator_test
 import (
 	"testing"
 
-	"github.com/ardikabs/golib/errs"
-	"github.com/ardikabs/golib/validator"
+	"github.com/ardikabs/golib/pkg/errs"
+	"github.com/ardikabs/golib/pkg/validator"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 
 	"fmt"
-	"github.com/ardikabs/golib/tool"
+
+	"github.com/ardikabs/golib/pkg/tool"
 )
 
 // WithPath set the URL Path

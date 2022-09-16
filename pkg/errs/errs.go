@@ -209,7 +209,7 @@ func E(args ...interface{}) error {
 			}
 		default:
 			_, file, line, _ := runtime.Caller(1)
-			return fmt.Errorf("errors.E: bad call from %s:%d: %v, unknown type %T, value %v in error call", file, line, args, arg, arg)
+			return fmt.Errorf("errs.E: bad call from %s:%d: %v, unknown type %T, value %v in error call", file, line, args, arg, arg)
 		}
 	}
 
