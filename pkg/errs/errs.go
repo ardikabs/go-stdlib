@@ -1,10 +1,8 @@
 package errs
 
 import (
-	"bytes"
 	"fmt"
 	"runtime"
-	"strings"
 
 	errs "errors"
 
@@ -23,6 +21,11 @@ type Code string
 // Parameter represents the parameter related to the error.
 type Parameter string
 
+// Realm is a description of a protected area, used in the WWW-Authenticate header.
+// Realm should be set when error Kind is Unauthenticated. If left unset, Realm
+// will be set to the default set by the "restricted" method
+type Realm string
+
 // Error is the type that implements the error interface.
 // It contains a number of fields, each of different type.
 // An Error value may leave some values unset.
@@ -39,6 +42,9 @@ type Error struct {
 
 	// Param represents the parameter related to the error.
 	Param Parameter
+
+	// Realm is a description of a protected area, used in the WWW-Authenticate header.
+	Realm Realm
 
 	// The underlying error that triggered this one, if any.
 	Err error
@@ -79,39 +85,32 @@ func (e Error) StackTrace() errors.StackTrace {
 	return nil
 }
 
-type ValidationErrors []error
-
-func (v *ValidationErrors) Append(args ...interface{}) {
-	*v = append(*v, E(args...))
-}
-
-func (v ValidationErrors) Error() string {
-	buff := bytes.NewBufferString("")
-
-	for i := 0; i < len(v); i++ {
-
-		if err, ok := v[i].(*Error); ok {
-			buff.WriteString(fmt.Sprintf("%s: %s", err.Param, err.Error()))
-			buff.WriteString("\n")
-		}
-	}
-
-	return strings.TrimSpace(buff.String())
+func (e *Error) isZero() bool {
+	return e.Err == nil &&
+		e.User == "" &&
+		e.Param == "" &&
+		e.Code == ""
 }
 
 const (
-	Other           Kind = iota // Unclassified error. This value is not printed in the error message.
-	IO                          // External I/O error such as network failure
-	Private                     // Information withheld
-	Internal                    // Internal error or inconsistency
-	Database                    // Database error
-	Exist                       // Resource already exist
-	NotExist                    // Resource does not exists
-	Invalid                     // Invalid operation for this type of item
-	Validation                  // Input validation error
-	InvalidRequest              // Invalid request
-	Permission                  // Permission error request
-	Unauthenticated             // Unauthenticated error if unauthenticated request occur
+	Other          Kind = iota // Unclassified error. This value is not printed in the error message.
+	IO                         // External I/O error such as network failure
+	Private                    // Information withheld
+	Internal                   // Internal error or inconsistency
+	Database                   // Database error
+	Exist                      // Resource already exist
+	NotExist                   // Resource does not exists
+	Invalid                    // Invalid operation for this type of item
+	Validation                 // Input validation error
+	InvalidRequest             // Invalid request
+
+	// Unauthenticated error will response with http.StatusUnauthorized (401) with empty body
+	Unauthenticated
+
+	// Unauthorized error will response with http.StatusForbidden (403) with empty body
+	// It is used when an authenticated user trying to access the resource
+	// but not permitted to do so
+	Unauthorized
 )
 
 func (k Kind) String() string {
@@ -136,14 +135,16 @@ func (k Kind) String() string {
 		return "input_validation_error"
 	case InvalidRequest:
 		return "invalid_request_error"
-	case Permission:
-		return "permission_denied"
 	case Unauthenticated:
 		return "unauthenticated_request"
+	case Unauthorized:
+		return "unauthorized_request"
 	}
 
 	return "unknown_error"
 }
+
+var DefaultRealm Realm = "restricted"
 
 // E builds an error value from its arguments.
 // There must be at least one argument or E panics.
@@ -187,6 +188,8 @@ func E(args ...interface{}) error {
 			e.Code = arg
 		case Parameter:
 			e.Param = arg
+		case Realm:
+			e.Realm = arg
 		case string:
 			e.Err = errors.New(arg)
 		case *Error:
@@ -207,10 +210,17 @@ func E(args ...interface{}) error {
 			} else {
 				e.Err = errors.WithStack(arg)
 			}
+
 		default:
 			_, file, line, _ := runtime.Caller(1)
 			return fmt.Errorf("errs.E: bad call from %s:%d: %v, unknown type %T, value %v in error call", file, line, args, arg, arg)
 		}
+	}
+
+	// If this error and the inner still has Realm == "", while error Kind is Unauthenticated
+	// then the realm set to default "restricted" method
+	if e.Realm == "" && e.Kind == Unauthenticated {
+		e.Realm = "restricted"
 	}
 
 	prev, ok := e.Err.(*Error)
@@ -239,6 +249,16 @@ func E(args ...interface{}) error {
 	if e.Param == "" {
 		e.Param = prev.Param
 		prev.Param = ""
+	}
+
+	if prev.Realm == e.Realm {
+		prev.Realm = ""
+	}
+
+	// If this inner error hasn't Default Realm, then pull up the inner Realm
+	if prev.Realm != DefaultRealm && e.Realm == DefaultRealm {
+		e.Realm = prev.Realm
+		prev.Realm = ""
 	}
 
 	return e

@@ -8,9 +8,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestErrsNoArgs(t *testing.T) {
-	assert.Panics(t, func() {
-		_ = errs.E()
+func TestErrs(t *testing.T) {
+
+	t.Run("no arguments", func(t *testing.T) {
+		assert.Panics(t, func() {
+			_ = errs.E()
+		})
+	})
+
+	t.Run("unexpected argument", func(t *testing.T) {
+		var any interface{}
+		err := errs.E(any)
+		assert.NotNil(t, err)
+
+		_, ok := err.(*errs.Error)
+		assert.False(t, ok, "expected error should not be an errs.Error type, instead of a common error from fmt.Errorf")
+	})
+
+	t.Run("check error kind alias", func(t *testing.T) {
+		assert.Equal(t, "other_error", errs.Other.String())
+		assert.Equal(t, "I/O_error", errs.IO.String())
 	})
 }
 
@@ -83,4 +100,27 @@ func TestMatch(t *testing.T) {
 	err2 := errs.E(errs.Database, user, param, code, err)
 	match = errs.Match(want, err2)
 	assert.False(t, match, "Expect to be mismatched, but matched")
+}
+
+func TestUnauthenticatedE(t *testing.T) {
+
+	t.Run("default realm", func(t *testing.T) {
+		err := errs.E(errs.Unauthenticated, errs.UserName("john@doe.com"))
+		assert.NotNil(t, err)
+
+		e, ok := err.(*errs.Error)
+		assert.True(t, ok)
+
+		assert.Equal(t, errs.DefaultRealm, e.Realm)
+	})
+
+	t.Run("given realm", func(t *testing.T) {
+		err := errs.E(errs.Unauthenticated, errs.Realm("admin"), errs.UserName("john@doe.com"))
+		assert.NotNil(t, err)
+
+		e, ok := err.(*errs.Error)
+		assert.True(t, ok)
+
+		assert.Equal(t, errs.Realm("admin"), e.Realm)
+	})
 }

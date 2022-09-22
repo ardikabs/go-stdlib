@@ -28,4 +28,8 @@ func TestValidatorPanic(t *testing.T) {
 	assert.Panics(t, func() {
 		v.AddError(errs.Parameter("last_name"))
 	})
+
+	assert.Panics(t, func() {
+		v.AddError(errs.Parameter("last_name"), nil)
+	})
 }
