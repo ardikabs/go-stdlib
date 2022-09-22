@@ -49,13 +49,13 @@ func GetString(viperkey string, env string, defaultVal string) string {
 // GetInt get integer value in the viper and environment variable with default value
 func GetInt(viperkey string, env string, defaultVal int) int {
 	if value := viper.Get(viperkey); value != nil {
-		switch value.(type) {
+		switch value := value.(type) {
 		case string:
-			if v, err := strconv.Atoi(value.(string)); err == nil {
+			if v, err := strconv.Atoi(value); err == nil {
 				return v
 			}
 		case int:
-			return value.(int)
+			return value
 		}
 	}
 
