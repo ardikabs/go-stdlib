@@ -1,6 +1,7 @@
 package errs_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
@@ -28,6 +29,18 @@ func TestErrs(t *testing.T) {
 	t.Run("check error kind alias", func(t *testing.T) {
 		assert.Equal(t, "other_error", errs.Other.String())
 		assert.Equal(t, "I/O_error", errs.IO.String())
+	})
+
+	t.Run("Unwrap the error should return the unwrapped error", func(t *testing.T) {
+		var errX = fmt.Errorf("error X")
+
+		err := errs.E(
+			errs.Code("internal"),
+			errs.Internal,
+			fmt.Errorf("internal error from X: %w", errX),
+		)
+		assert.True(t, errors.Is(errors.Unwrap(err), errX))
+		assert.True(t, errs.KindIs(errs.Internal, err))
 	})
 }
 

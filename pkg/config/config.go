@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+// NewConfig return a viper.Viper instance from given configuration details
+// Configuration details consist of the configuration file path, configuration file name, also the env prefix if available
 func NewConfig(configPath, configName, envPrefix string) *viper.Viper {
 	fang := viper.New()
 

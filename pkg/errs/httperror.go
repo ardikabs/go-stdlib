@@ -81,16 +81,19 @@ func HTTPErrorHandler(w http.ResponseWriter, lgr zerolog.Logger, err error) {
 
 func commonErrHandler(w http.ResponseWriter, lgr zerolog.Logger, e *Error) {
 	if e.isZero() {
-		lgr.Error().Stack().
-			Str("kind", string(e.Kind)).
-			Msg("empty error")
+		lgr.Error().
+			Stack().
+			Str("kind", e.Kind.String()).
+			Msg(e.Error())
 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	lgr.Error().Stack().Err(e.Err).
-		Str("kind", string(e.Kind)).
+	lgr.Error().
+		Stack().
+		Err(e.Err).
+		Str("kind", e.Kind.String()).
 		Str("username", string(e.User)).
 		Str("parameter", string(e.Param)).
 		Str("code", string(e.Code)).
@@ -101,14 +104,14 @@ func commonErrHandler(w http.ResponseWriter, lgr zerolog.Logger, e *Error) {
 	case Internal, Database, IO:
 		errResponse = HTTPErrResponse{
 			Error: &ServiceError{
-				Kind:    string(e.Kind),
+				Kind:    e.Kind.String(),
 				Message: "internal server error",
 			},
 		}
 	default:
 		errResponse = HTTPErrResponse{
 			Error: &ServiceError{
-				Kind:    string(e.Kind),
+				Kind:    e.Kind.String(),
 				Code:    string(e.Code),
 				Param:   string(e.Param),
 				Message: e.Error(),
@@ -119,8 +122,8 @@ func commonErrHandler(w http.ResponseWriter, lgr zerolog.Logger, e *Error) {
 	errJSON, _ := json.Marshal(errResponse)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Write(errJSON)
 	w.WriteHeader(HTTPStatusCodeFromError(e))
+	w.Write(errJSON)
 }
 
 func validationErrHandler(w http.ResponseWriter, lgr zerolog.Logger, e *Error) {
@@ -137,29 +140,31 @@ func validationErrHandler(w http.ResponseWriter, lgr zerolog.Logger, e *Error) {
 		Int("fields", len(verr)).
 		Msg("input validation error")
 
-	var errFields []ServiceError
+	var errs []ServiceError
 	for _, err := range verr {
 		ie, ok := err.(*Error)
 		if !ok {
+			lgr.Error().
+				Stack().
+				Err(err).
+				Msg("input validation error - unexpected error")
 			continue
 		}
 
-		errFields = append(errFields, ServiceError{
+		errs = append(errs, ServiceError{
 			Code:    string(ie.Code),
 			Param:   string(ie.Param),
 			Message: ie.Error(),
 		})
 	}
 
-	var errResponse = HTTPErrResponse{
-		Errors: errFields,
-	}
-
-	errJSON, _ := json.Marshal(errResponse)
+	errJSON, _ := json.Marshal(HTTPErrResponse{
+		Errors: errs,
+	})
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.Write(errJSON)
 	w.WriteHeader(HTTPStatusCodeFromError(e))
+	w.Write(errJSON)
 }
 
 func unauthenticatedErrHandler(w http.ResponseWriter, lgr zerolog.Logger, e *Error) {
@@ -193,13 +198,13 @@ func unknownErrHandler(w http.ResponseWriter, lgr zerolog.Logger, err error) {
 		},
 	}
 
-	lgr.Error().Stack().Err(err).Msg("unknown error")
+	lgr.Error().Stack().Err(err).Int("code", HTTPStatusCodeFromError(err)).Msg("unknown error")
 
 	errJSON, _ := json.Marshal(errResponse)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+	w.WriteHeader(http.StatusNotImplemented)
 	w.Write(errJSON)
-	w.WriteHeader(http.StatusInternalServerError)
 }
 
 // HTTPStatusCodeFromError translate error to an http status code
@@ -207,7 +212,7 @@ func HTTPStatusCodeFromError(err error) int {
 
 	var e *Error
 	if !errors.As(err, &e) {
-		return http.StatusInternalServerError
+		return http.StatusNotImplemented
 	}
 
 	switch e.Kind {

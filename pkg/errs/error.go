@@ -65,28 +65,34 @@ func (e *Error) Cause() error {
 }
 
 func (e Error) Unwrap() error {
-	return e.Err
+	return errs.Unwrap(e.Err)
 }
 
 func (e *Error) Error() string {
 	return e.Err.Error()
 }
 
-// StackTrace satisfy errors.StackTrace interface
-func (e Error) StackTrace() errors.StackTrace {
-	type stackTracer interface {
-		StackTrace() errors.StackTrace
+func (e *Error) Format(s fmt.State, verb rune) {
+	switch verb {
+	case 'v':
+		if s.Flag('+') {
+			if st, ok := e.Err.(interface {
+				StackTrace() errors.StackTrace
+			}); ok {
+				for _, fr := range st.StackTrace()[1:] {
+					fmt.Fprintf(s, "\n%+v", fr)
+				}
+				return
+			}
+		}
+		fallthrough
+	case 's':
+		fmt.Fprintf(s, "%s", e.Error())
 	}
-
-	if st, ok := e.Err.(stackTracer); ok {
-		return st.StackTrace()
-	}
-
-	return nil
 }
 
 func (e *Error) isZero() bool {
-	return e.Err == nil &&
+	return e.Is(ErrUndefined) &&
 		e.User == "" &&
 		e.Param == "" &&
 		e.Code == ""
@@ -145,6 +151,7 @@ func (k Kind) String() string {
 }
 
 var DefaultRealm Realm = "restricted"
+var ErrUndefined = errors.New("undefined error")
 
 // E builds an error value from its arguments.
 // There must be at least one argument or E panics.
@@ -153,15 +160,20 @@ var DefaultRealm Realm = "restricted"
 // only the last one is recorded.
 //
 // The types are:
-//	errs.Kind
-//		The class of error, such as permission failure.
 //	errs.UserName
 //		The username of the user attempting the operation.
+//	errs.Kind
+//		The class of error, such as permission failure.
+//	errs.Code
+//		The code for a human-readable purpose about the error.
+//	errs.Parameter
+//		The parameter represent the parameter related with the error.
 //	string
 //		Treated as an error message and assigned to the
 //		Err field after a call to errors.New.
 //	error
-//		The underlying error that triggered this one.
+//		The underlying error that triggered this one, if the error not contains stack,
+// 		we will wrap it
 //
 // If the error is printed, only those items that have been
 // set to non-zero values will appear in the result.
@@ -169,12 +181,9 @@ var DefaultRealm Realm = "restricted"
 // If Kind is not specified or Other, we set it to the Kind of
 // the underlying error.
 func E(args ...interface{}) error {
-	type stackTracer interface {
-		StackTrace() errors.StackTrace
-	}
 
 	if len(args) == 0 {
-		panic("call to errors.E with no arguments")
+		panic("call to errs.E with no arguments")
 	}
 
 	e := &Error{}
@@ -204,7 +213,9 @@ func E(args ...interface{}) error {
 			// if the error implements stackTracer, then it is
 			// a pkg/errors error type and does not need to have
 			// the stack added
-			_, ok := arg.(stackTracer)
+			_, ok := arg.(interface {
+				StackTrace() errors.StackTrace
+			})
 			if ok {
 				e.Err = arg
 			} else {
@@ -220,7 +231,11 @@ func E(args ...interface{}) error {
 	// If this error and the inner still has Realm == "", while error Kind is Unauthenticated
 	// then the realm set to default "restricted" method
 	if e.Realm == "" && e.Kind == Unauthenticated {
-		e.Realm = "restricted"
+		e.Realm = DefaultRealm
+	}
+
+	if e.Err == nil {
+		e.Err = ErrUndefined
 	}
 
 	prev, ok := e.Err.(*Error)
@@ -255,8 +270,8 @@ func E(args ...interface{}) error {
 		prev.Realm = ""
 	}
 
-	// If this inner error hasn't Default Realm, then pull up the inner Realm
-	if prev.Realm != DefaultRealm && e.Realm == DefaultRealm {
+	// If this inner error has Realm, pull up the inner one
+	if e.Realm == "" {
 		e.Realm = prev.Realm
 		prev.Realm = ""
 	}
