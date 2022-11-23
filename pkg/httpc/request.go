@@ -1,6 +1,7 @@
 package httpc
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -18,6 +19,7 @@ type Option func(*Request) error
 
 // Request represent the http Request
 type Request struct {
+	ctx   context.Context
 	httpc Doer
 	url   *url.URL
 
@@ -48,6 +50,7 @@ func NewRequest(client Doer, baseURL string, opts ...Option) (*Request, error) {
 	}
 
 	r := &Request{
+		ctx:                context.Background(),
 		httpc:              client,
 		url:                u,
 		header:             make(http.Header),
@@ -77,7 +80,7 @@ func (r *Request) getURL() string {
 // Invoke do invoking the the Request to a given setup (URL, headers, body, parameters)
 // and processing based on needs
 func (r *Request) Invoke() error {
-	req, err := http.NewRequest(r.method, r.getURL(), r.body)
+	req, err := http.NewRequestWithContext(r.ctx, r.method, r.getURL(), r.body)
 	if err != nil {
 		return err
 	}

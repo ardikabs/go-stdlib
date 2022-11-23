@@ -1,6 +1,7 @@
 package httpc_test
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,6 +22,14 @@ func TestNewRequestSuccess(t *testing.T) {
 
 func TestNewRequestError(t *testing.T) {
 	fakeBaseURL := "http://localhost.local"
+
+	t.Run("request with predefined context", func(t *testing.T) {
+		req, err := httpc.NewRequest(http.DefaultClient, fakeBaseURL,
+			httpc.WithContext(context.TODO()),
+		)
+		assert.Nil(t, err)
+		assert.NotNil(t, req)
+	})
 
 	t.Run("bad http host", func(t *testing.T) {
 		req, err := httpc.NewRequest(http.DefaultClient, "localhost.local")

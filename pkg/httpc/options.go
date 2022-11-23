@@ -2,12 +2,21 @@ package httpc
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 
 	"fmt"
 
 	"github.com/ardikabs/golib/pkg/tool"
 )
+
+// WithContext set the context for the http request operation
+func WithContext(ctx context.Context) Option {
+	return func(req *Request) error {
+		req.ctx = ctx
+		return nil
+	}
+}
 
 // WithPath set the URL Path
 func WithPath(path string) Option {
