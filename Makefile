@@ -1,4 +1,4 @@
-GOLANGCI_VERSION = 1.47.3
+GOLANGCI_VERSION = 1.52.2
 OUTDIR := bin
 PATH := bin:$(PATH)
 SHELL := env PATH=$(PATH) /bin/bash
