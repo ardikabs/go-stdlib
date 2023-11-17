@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/ardikabs/golib/pkg/errs"
+	"github.com/ardikabs/go-stdlib/pkg/errs"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )

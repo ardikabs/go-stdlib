@@ -1,4 +1,4 @@
-package httpc
+package httpclient
 
 import "net/http"
 

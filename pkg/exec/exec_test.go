@@ -5,7 +5,7 @@ import (
 	"os/exec"
 	"testing"
 
-	. "github.com/ardikabs/golib/pkg/exec"
+	. "github.com/ardikabs/go-stdlib/pkg/exec"
 	"github.com/stretchr/testify/assert"
 )
 
