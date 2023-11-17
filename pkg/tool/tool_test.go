@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/ardikabs/golib/pkg/tool"
+	"github.com/ardikabs/go-stdlib/pkg/tool"
 	"github.com/stretchr/testify/assert"
 )
 

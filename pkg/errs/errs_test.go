@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ardikabs/golib/pkg/errs"
+	"github.com/ardikabs/go-stdlib/pkg/errs"
 	"github.com/stretchr/testify/assert"
 )
 

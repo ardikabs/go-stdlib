@@ -1,4 +1,4 @@
-package httpc
+package httpclient
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 
 	"fmt"
 
-	"github.com/ardikabs/golib/pkg/tool"
+	"github.com/ardikabs/go-stdlib/pkg/tool"
 )
 
 // WithContext set the context for the http request operation

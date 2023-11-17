@@ -1,4 +1,4 @@
-package httpc_test
+package httpclient_test
 
 import (
 	"context"
@@ -9,13 +9,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/ardikabs/golib/pkg/httpc"
+	"github.com/ardikabs/go-stdlib/pkg/httpclient"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewRequestSuccess(t *testing.T) {
-	req, err := httpc.NewRequest(http.DefaultClient, "http://localhost.local")
+	req, err := httpclient.NewRequest(http.DefaultClient, "http://localhost.local")
 	assert.NotNil(t, req)
 	assert.Nil(t, err)
 }
@@ -24,53 +24,53 @@ func TestNewRequestError(t *testing.T) {
 	fakeBaseURL := "http://localhost.local"
 
 	t.Run("request with predefined context", func(t *testing.T) {
-		req, err := httpc.NewRequest(http.DefaultClient, fakeBaseURL,
-			httpc.WithContext(context.TODO()),
+		req, err := httpclient.NewRequest(http.DefaultClient, fakeBaseURL,
+			httpclient.WithContext(context.TODO()),
 		)
 		assert.Nil(t, err)
 		assert.NotNil(t, req)
 	})
 
 	t.Run("bad http host", func(t *testing.T) {
-		req, err := httpc.NewRequest(http.DefaultClient, "localhost.local")
+		req, err := httpclient.NewRequest(http.DefaultClient, "localhost.local")
 		assert.Nil(t, req)
 		assert.NotNil(t, err)
-		assert.Equal(t, httpc.ErrProtocolRequired, err)
+		assert.Equal(t, httpclient.ErrProtocolRequired, err)
 	})
 
 	t.Run("unparsed http base url", func(t *testing.T) {
-		req, err := httpc.NewRequest(http.DefaultClient, "postgres://user:abc{DEf1=ghi@example.com:5432/db?sslmode=require")
+		req, err := httpclient.NewRequest(http.DefaultClient, "postgres://user:abc{DEf1=ghi@example.com:5432/db?sslmode=require")
 		assert.Nil(t, req)
 		assert.NotNil(t, err)
 	})
 
 	t.Run("bad request payload", func(t *testing.T) {
-		req, err := httpc.NewRequest(http.DefaultClient, fakeBaseURL,
-			httpc.WithRequestPayload(httpc.PayloadJSON, make(chan int)),
+		req, err := httpclient.NewRequest(http.DefaultClient, fakeBaseURL,
+			httpclient.WithRequestPayload(httpclient.PayloadJSON, make(chan int)),
 		)
 		assert.NotNil(t, err)
 		assert.Nil(t, req)
 	})
 
 	t.Run("response receiver couldn't nil", func(t *testing.T) {
-		req, err := httpc.NewRequest(http.DefaultClient, fakeBaseURL,
-			httpc.WithResponseReceiver(nil),
+		req, err := httpclient.NewRequest(http.DefaultClient, fakeBaseURL,
+			httpclient.WithResponseReceiver(nil),
 		)
 		assert.NotNil(t, err)
 		assert.Nil(t, req)
 	})
 
 	t.Run("unknown retry on type", func(t *testing.T) {
-		req, err := httpc.NewRequest(http.DefaultClient, fakeBaseURL,
-			httpc.WithRetryOn(0),
+		req, err := httpclient.NewRequest(http.DefaultClient, fakeBaseURL,
+			httpclient.WithRetryOn(0),
 		)
 		assert.NotNil(t, err)
 		assert.Nil(t, req)
 	})
 
 	t.Run("custom status code handler nil", func(t *testing.T) {
-		req, err := httpc.NewRequest(http.DefaultClient, fakeBaseURL,
-			httpc.WithCustomHandler(http.StatusOK, nil),
+		req, err := httpclient.NewRequest(http.DefaultClient, fakeBaseURL,
+			httpclient.WithCustomHandler(http.StatusOK, nil),
 		)
 		assert.NotNil(t, err)
 		assert.Nil(t, req)
@@ -94,11 +94,11 @@ func TestInvokeSimple(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		req, err := httpc.NewRequest(ts.Client(), ts.URL,
-			httpc.WithMethod(expectedMethod),
-			httpc.WithPath(expectedPath),
-			httpc.WithQueryParam(expectedQueryParamKey, expectedQueryParamValue),
-			httpc.WithHeader(expectedHeaderKey, expectedHeaderValue),
+		req, err := httpclient.NewRequest(ts.Client(), ts.URL,
+			httpclient.WithMethod(expectedMethod),
+			httpclient.WithPath(expectedPath),
+			httpclient.WithQueryParam(expectedQueryParamKey, expectedQueryParamValue),
+			httpclient.WithHeader(expectedHeaderKey, expectedHeaderValue),
 		)
 
 		assert.NotNil(t, req)
@@ -120,11 +120,11 @@ func TestInvokeSimple(t *testing.T) {
 
 		url := fmt.Sprintf("%s?age=descending", ts.URL)
 
-		req, err := httpc.NewRequest(ts.Client(), url,
-			httpc.WithMethod(expectedMethod),
-			httpc.WithPath(expectedPath),
-			httpc.WithQueryParam(expectedQueryParamKey, expectedQueryParamValue),
-			httpc.WithHeader(expectedHeaderKey, expectedHeaderValue),
+		req, err := httpclient.NewRequest(ts.Client(), url,
+			httpclient.WithMethod(expectedMethod),
+			httpclient.WithPath(expectedPath),
+			httpclient.WithQueryParam(expectedQueryParamKey, expectedQueryParamValue),
+			httpclient.WithHeader(expectedHeaderKey, expectedHeaderValue),
 		)
 
 		assert.NotNil(t, req)
@@ -152,7 +152,7 @@ func TestInvokeWithPayloadAndReceiver(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, expectedMethod, r.Method)
 		assert.Equal(t, expectedPath, r.URL.Path)
-		assert.Equal(t, httpc.MIMEApplicationJSON, r.Header.Get(httpc.HeaderContentType))
+		assert.Equal(t, httpclient.MIMEApplicationJSON, r.Header.Get(httpclient.HeaderContentType))
 
 		assert.NotNil(t, r.Body)
 
@@ -163,18 +163,18 @@ func TestInvokeWithPayloadAndReceiver(t *testing.T) {
 		require.NoError(t, err, "should not have failed to marshal the struct")
 
 		assert.Equal(t, string(expectedPayloadByte), string(rbody))
-		w.Header().Set(httpc.HeaderContentType, httpc.MIMEApplicationJSON)
+		w.Header().Set(httpclient.HeaderContentType, httpclient.MIMEApplicationJSON)
 		w.Write([]byte(`{"id": 1, "name": "fake name"}`))
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ts.Close()
 
 	var resp response
-	req, err := httpc.NewRequest(ts.Client(), ts.URL,
-		httpc.WithMethod(expectedMethod),
-		httpc.WithPath(expectedPath),
-		httpc.WithRequestPayload(httpc.PayloadJSON, expectedPayload),
-		httpc.WithResponseReceiver(&resp),
+	req, err := httpclient.NewRequest(ts.Client(), ts.URL,
+		httpclient.WithMethod(expectedMethod),
+		httpclient.WithPath(expectedPath),
+		httpclient.WithRequestPayload(httpclient.PayloadJSON, expectedPayload),
+		httpclient.WithResponseReceiver(&resp),
 	)
 
 	assert.NotNil(t, req)
@@ -205,18 +205,18 @@ func TestInvokeWithRetry(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		req, err := httpc.NewRequest(ts.Client(), ts.URL,
-			httpc.WithMethod(expectedMethod),
-			httpc.WithPath(expectedPath),
-			httpc.WithRetryOn(httpc.RetryOnNon2xx),
-			httpc.WithRetryLimit(noOfRetries),
+		req, err := httpclient.NewRequest(ts.Client(), ts.URL,
+			httpclient.WithMethod(expectedMethod),
+			httpclient.WithPath(expectedPath),
+			httpclient.WithRetryOn(httpclient.RetryOnNon2xx),
+			httpclient.WithRetryLimit(noOfRetries),
 		)
 
 		assert.NotNil(t, req)
 		assert.Nil(t, err)
 
 		err = req.Invoke()
-		assert.ErrorIs(t, err, httpc.ErrRetryExceeded)
+		assert.ErrorIs(t, err, httpclient.ErrRetryExceeded)
 		assert.Equal(t, expectedNoOfCalls, count)
 	})
 
@@ -234,18 +234,18 @@ func TestInvokeWithRetry(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		req, err := httpc.NewRequest(ts.Client(), ts.URL,
-			httpc.WithMethod(expectedMethod),
-			httpc.WithPath(expectedPath),
-			httpc.WithRetryOn(httpc.RetryOn4xx),
-			httpc.WithRetryLimit(noOfRetries),
+		req, err := httpclient.NewRequest(ts.Client(), ts.URL,
+			httpclient.WithMethod(expectedMethod),
+			httpclient.WithPath(expectedPath),
+			httpclient.WithRetryOn(httpclient.RetryOn4xx),
+			httpclient.WithRetryLimit(noOfRetries),
 		)
 
 		assert.NotNil(t, req)
 		assert.Nil(t, err)
 
 		err = req.Invoke()
-		assert.ErrorIs(t, err, httpc.ErrRetryExceeded)
+		assert.ErrorIs(t, err, httpclient.ErrRetryExceeded)
 		assert.Equal(t, expectedNoOfCalls, count)
 	})
 
@@ -264,18 +264,18 @@ func TestInvokeWithRetry(t *testing.T) {
 		}))
 		defer ts.Close()
 
-		req, err := httpc.NewRequest(ts.Client(), ts.URL,
-			httpc.WithMethod(expectedMethod),
-			httpc.WithPath(expectedPath),
-			httpc.WithRetryOn(httpc.RetryOnGatewayErr),
-			httpc.WithRetryLimit(noOfRetries),
+		req, err := httpclient.NewRequest(ts.Client(), ts.URL,
+			httpclient.WithMethod(expectedMethod),
+			httpclient.WithPath(expectedPath),
+			httpclient.WithRetryOn(httpclient.RetryOnGatewayErr),
+			httpclient.WithRetryLimit(noOfRetries),
 		)
 
 		assert.NotNil(t, req)
 		assert.Nil(t, err)
 
 		err = req.Invoke()
-		assert.ErrorIs(t, err, httpc.ErrRetryExceeded)
+		assert.ErrorIs(t, err, httpclient.ErrRetryExceeded)
 		assert.Equal(t, expectedNoOfCalls, count)
 	})
 }
@@ -289,18 +289,18 @@ func TestInvokeWithUnmarshaller(t *testing.T) {
 		assert.Equal(t, expectedMethod, r.Method)
 		assert.Equal(t, expectedPath, r.URL.Path)
 
-		w.Header().Set(httpc.HeaderContentType, httpc.MIMEApplicationJSON)
+		w.Header().Set(httpclient.HeaderContentType, httpclient.MIMEApplicationJSON)
 		w.Write(expectedResponseByte)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer ts.Close()
 
-	req, err := httpc.NewRequest(ts.Client(), ts.URL,
-		httpc.WithMethod(expectedMethod),
-		httpc.WithPath(expectedPath),
-		httpc.WithUnmarshaler(func(contentType string, data []byte, out interface{}) error {
+	req, err := httpclient.NewRequest(ts.Client(), ts.URL,
+		httpclient.WithMethod(expectedMethod),
+		httpclient.WithPath(expectedPath),
+		httpclient.WithUnmarshaler(func(contentType string, data []byte, out interface{}) error {
 			assert.Equal(t, string(expectedResponseByte), string(data))
-			assert.Equal(t, httpc.MIMEApplicationJSON, contentType)
+			assert.Equal(t, httpclient.MIMEApplicationJSON, contentType)
 			return nil
 		}),
 	)
@@ -320,17 +320,17 @@ func TestInvokeWithCustomHandler(t *testing.T) {
 		assert.Equal(t, expectedMethod, r.Method)
 		assert.Equal(t, expectedPath, r.URL.Path)
 
-		w.Header().Set(httpc.HeaderContentType, httpc.MIMEApplicationJSON)
+		w.Header().Set(httpclient.HeaderContentType, httpclient.MIMEApplicationJSON)
 		w.WriteHeader(http.StatusAccepted)
 	}))
 	defer ts.Close()
 
-	req, err := httpc.NewRequest(ts.Client(), ts.URL,
-		httpc.WithMethod(expectedMethod),
-		httpc.WithPath(expectedPath),
-		httpc.WithCustomHandler(http.StatusAccepted, func(r *http.Response) error {
+	req, err := httpclient.NewRequest(ts.Client(), ts.URL,
+		httpclient.WithMethod(expectedMethod),
+		httpclient.WithPath(expectedPath),
+		httpclient.WithCustomHandler(http.StatusAccepted, func(r *http.Response) error {
 			assert.Equal(t, http.StatusAccepted, r.StatusCode)
-			assert.Equal(t, httpc.MIMEApplicationJSON, r.Header.Get(httpc.HeaderContentType))
+			assert.Equal(t, httpclient.MIMEApplicationJSON, r.Header.Get(httpclient.HeaderContentType))
 			return nil
 		}),
 	)
