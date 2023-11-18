@@ -10,13 +10,13 @@ import (
 )
 
 func TestLookup(t *testing.T) {
+	defer os.Clearenv()
 	t.Setenv("HTTP_ADDR", "0.0.0.0")
 	t.Setenv("HTTP_PORT", "8080")
 	t.Setenv("DEBUG_MODE", "1")
 	t.Setenv("HTTP_TIMEOUT", "30s")
 	t.Setenv("HTTP_RESERVED_CONTENT_TYPES", "text/plain,application/json")
 	t.Setenv("HTTP_RESERVED_STATUS_CODES", "401,429,503")
-	defer os.Clearenv()
 
 	gotString := env.Lookup("HTTP_ADDR", "127.0.0.1")
 	require.Equal(t, "0.0.0.0", gotString)
@@ -38,6 +38,7 @@ func TestLookup(t *testing.T) {
 }
 
 func TestLookupDefaultValue(t *testing.T) {
+	defer os.Clearenv()
 	t.Setenv("HTTP_ADDR", "")
 	t.Setenv("HTTP_PORT", "invalid-value")
 	t.Setenv("DEBUG_MODE", "invalid-value")
@@ -45,7 +46,6 @@ func TestLookupDefaultValue(t *testing.T) {
 	t.Setenv("HTTP_RESERVED_CONTENT_TYPES", "")
 	t.Setenv("HTTP_RESERVED_STATUS_CODES", "")
 	t.Setenv("RANGE_OF_RETRY_BACKOFF_SECONDS", "10,20,30a")
-	defer os.Clearenv()
 
 	got := env.Lookup("AGENT_MODE", true)
 	require.Equal(t, true, got)
