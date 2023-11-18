@@ -1,3 +1,8 @@
+run:
+  tests: true
+  timeout: 5m
+  go: "1.20"
+
 linters:
   enable:
     - errcheck
@@ -9,5 +14,5 @@ linters-settings:
   errcheck:
     # exclude: errcheck-exclude.txt
     exclude-functions:
-    - (io.Closer).Close
-    - (net/http.ResponseWriter).Write
+      - (io.Closer).Close
+      - (net/http.ResponseWriter).Write
